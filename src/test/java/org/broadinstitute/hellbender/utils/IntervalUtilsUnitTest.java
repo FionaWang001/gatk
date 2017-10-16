@@ -2,6 +2,7 @@ package org.broadinstitute.hellbender.utils;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import htsjdk.samtools.QueryInterval;
 import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMSequenceDictionary;
@@ -1574,6 +1575,12 @@ public final class IntervalUtilsUnitTest extends BaseTest {
         final List<SimpleInterval> k5 = Lists.newArrayList(new SimpleInterval("1", 100, 300),
                 new SimpleInterval("1", 301, 400));
 
+        final List<SimpleInterval> k6 = Lists.newArrayList(
+                new SimpleInterval("1",10001,10500),
+                new SimpleInterval("1", 52500, 109750),
+                new SimpleInterval("1", 109751, 230500),
+                new SimpleInterval("1", 230501, 258500));
+
         final List<SimpleInterval> vs = Lists.newArrayList(
                 new SimpleInterval("1", 100, 200),
                 new SimpleInterval("1", 300, 800)
@@ -1590,6 +1597,16 @@ public final class IntervalUtilsUnitTest extends BaseTest {
                 new SimpleInterval("1", 100, 200),
                 new SimpleInterval("1", 201, 500)
         );
+        final List<SimpleInterval> vs6 = Lists.newArrayList(
+                new SimpleInterval("1",5000, 60000),
+                new SimpleInterval("1",70000, 100000),
+                new SimpleInterval("1",120000, 220000),
+                new SimpleInterval("1",230000, 300000)
+        );
+
+        final List<SimpleInterval> vs7 = Lists.newArrayList(
+                new SimpleInterval("1",50, 200)
+        );
 
         return new Object[][]{
                 // Simple tests
@@ -1601,17 +1618,24 @@ public final class IntervalUtilsUnitTest extends BaseTest {
                 {k3, vs, ImmutableMap.of(k3.get(0), vs, k3.get(1), Collections.emptyList())},
                 {k4, vs, ImmutableMap.of(k4.get(0), vs, k4.get(1), vs.subList(1,2), k4.get(2), Collections.emptyList())},
                 {k5, vs5, ImmutableMap.of(k5.get(0), vs5, k5.get(1), vs5.subList(1,2))},
+                {k6, vs6, ImmutableMap.of(k6.get(0), vs6.subList(0,1), k6.get(1), vs6.subList(0,2), k6.get(2), vs6.subList(2,4), k6.get(3), vs6.subList(3,4))},
+                {k, vs7, ImmutableMap.of(k.get(0), vs7)},
         };
     }
 
     @Test(dataProvider = "overlappingData")
     public void testCreateOverlapMap(List<Locatable> locatables1, List<Locatable> locatables2, Map<Locatable, List<Locatable>> gtOutput) {
-        final SAMSequenceDictionary dictionary = new SAMSequenceDictionary(Arrays.asList(new SAMSequenceRecord("1", 5000),
+        final SAMSequenceDictionary dictionary = new SAMSequenceDictionary(Arrays.asList(new SAMSequenceRecord("1", 300000),
                 new SAMSequenceRecord("2", 5000)));
 
         final Map<Locatable, List<Locatable>> outputs = IntervalUtils.createOverlapMap(locatables1, locatables2, dictionary);
         Assert.assertEquals(outputs.size(), gtOutput.size());
         Assert.assertEquals(outputs.keySet().size(), new HashSet<>(locatables1).size());
-        Assert.assertEquals(outputs, gtOutput);
+        Assert.assertTrue(Sets.difference(outputs.keySet(), gtOutput.keySet()).size() == 0);
+
+        for (final Map.Entry<Locatable, List<Locatable>> overlap : outputs.entrySet()) {
+            Assert.assertEquals(overlap.getValue(), gtOutput.get(overlap.getKey()));
+        }
+
     }
 }

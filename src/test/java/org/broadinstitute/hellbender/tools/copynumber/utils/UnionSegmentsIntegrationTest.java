@@ -102,10 +102,10 @@ public class UnionSegmentsIntegrationTest extends CommandLineProgramTest {
         Assert.assertTrue(outputFile.exists());
 
         final VersatileAnnotatedRegionParser parser = new VersatileAnnotatedRegionParser();
-        final List<SimpleAnnotatedGenomicRegion> regions = parser.readAnnotatedRegions(outputFile, Sets.newHashSet("MEAN_LOG2_COPY_RATIO_1", "CALL_1", "MEAN_LOG2_COPY_RATIO_2", "CALL_2"));
+        final List<SimpleAnnotatedGenomicRegion> regions = parser.readAnnotatedRegions(outputFile, Sets.newHashSet("Segment_Mean_1", "Segment_Call_1", "Segment_Mean_2", "Segment_Call_2"));
         Assert.assertEquals(regions.size(), 13);
         Assert.assertTrue(regions.stream().allMatch(r -> r.getAnnotations().size() == 4));
     }
-        // TODO: Add test that is a bit more sophisticated and like the realy world
+        // TODO: Add test that is a bit more sophisticated and like the real world
     // TODO: Add warnings when columns of interest are not in a file.
 }

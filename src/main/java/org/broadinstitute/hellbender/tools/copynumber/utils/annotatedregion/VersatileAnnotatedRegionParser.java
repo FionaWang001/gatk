@@ -61,7 +61,7 @@ public class VersatileAnnotatedRegionParser {
             while ((segmentInfoMap = mapReader.read(headers)) != null) {
                 final Map<String, String> annotations = segmentInfoMap.entrySet().stream()
                         .filter(e -> otherHeaders.contains(e.getKey()))
-                        .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()));
+                        .collect(Collectors.toMap(e -> e.getKey(), e -> (e.getValue() == null? "" : e.getValue()) ));
 
                 result.add(new SimpleAnnotatedGenomicRegion(
                         new SimpleInterval(segmentInfoMap.get(contigHeader),

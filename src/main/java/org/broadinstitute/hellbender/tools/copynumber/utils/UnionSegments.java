@@ -5,6 +5,7 @@ import com.google.common.collect.Sets;
 import htsjdk.samtools.SAMSequenceDictionary;
 import htsjdk.samtools.SAMSequenceRecord;
 import htsjdk.samtools.util.Locatable;
+import org.apache.commons.lang3.StringUtils;
 import org.broadinstitute.barclay.argparser.Argument;
 import org.broadinstitute.barclay.argparser.CommandLineProgramProperties;
 import org.broadinstitute.hellbender.cmdline.ExomeStandardArgumentDefinitions;
@@ -31,8 +32,8 @@ import java.util.stream.Collectors;
         programGroup = CopyNumberProgramGroup.class)
 public class UnionSegments extends GATKTool {
 
-    public static final String COLUMNS_OF_INTEREST_LONG_NAME = "columnsOfInterest";
-    public static final String COLUMNS_OF_INTEREST_SHORT_NAME = "cols";
+    static final String COLUMNS_OF_INTEREST_LONG_NAME = "columnsOfInterest";
+    static final String COLUMNS_OF_INTEREST_SHORT_NAME = "cols";
     @Argument(
             doc = "Input segment files -- must be specified twice, but order does not matter.",
             fullName = ExomeStandardArgumentDefinitions.SEGMENT_FILE_LONG_NAME,
@@ -59,6 +60,14 @@ public class UnionSegments extends GATKTool {
             final VersatileAnnotatedRegionParser parser = new VersatileAnnotatedRegionParser();
             final List<SimpleAnnotatedGenomicRegion> segments1 = parser.readAnnotatedRegions(segmentsFile.get(0), columnsOfInterest);
             final List<SimpleAnnotatedGenomicRegion> segments2 = parser.readAnnotatedRegions(segmentsFile.get(1), columnsOfInterest);
+
+            // Check to see if we should warn the user that one or more columns of interest were not seen in any input file.
+            final Set<String> allSeenAnnotations = Sets.union(segments1.get(0).getAnnotations().keySet(), segments2.get(0).getAnnotations().keySet());
+            final Set<String> unusedColumnsOfInterest = Sets.difference(columnsOfInterest, allSeenAnnotations);
+            if (unusedColumnsOfInterest.size() > 0) {
+                final List<String> missingColumns = new ArrayList<>(unusedColumnsOfInterest);
+                logger.warn("Some columns of interest specified by the user were not seen in any input files: " + StringUtils.join(missingColumns, ", "));
+            }
 
             // Create a map of input to output headers.  I.e. the annotation in the segment1 to the output that should be written in the final file.
             //  This assumes that the keys in each entry of the list is the same.
@@ -118,10 +127,11 @@ public class UnionSegments extends GATKTool {
         final List<List<SimpleAnnotatedGenomicRegion>> segmentLists = Lists.newArrayList(segments1, segments2);
 
         // We assume that the union'ed intervals are sorted.
+        // TODO: This needs to be sorted if we want to support more than two sets of regions at once.
         final List<Locatable> unionIntervals = IntervalUtils.unionIntervals(
-                segments1.stream().map(SimpleAnnotatedGenomicRegion::getInterval)
+                segmentLists.get(0).stream().map(SimpleAnnotatedGenomicRegion::getInterval)
                         .collect(Collectors.toList()),
-                segments2.stream().map(SimpleAnnotatedGenomicRegion::getInterval)
+                segmentLists.get(1).stream().map(SimpleAnnotatedGenomicRegion::getInterval)
                         .collect(Collectors.toList()));
 
         // Create a list of maps where each entry corresponds to union'ed intervals to the regions in segmentList_i
@@ -135,9 +145,18 @@ public class UnionSegments extends GATKTool {
 
             for (int i = 0; i < unionIntervalsToSegmentsMaps.size(); i ++) {
                 final Map<Locatable, List<SimpleAnnotatedGenomicRegion>> unionIntervalsToSegmentsMap = unionIntervalsToSegmentsMaps.get(i);
-                final int j = i;
-                inputToOutputHeaderMaps.get(i)
-                        .forEach((k,v) -> intervalAnnotationMap.put(v, segmentLists.get(j).get(0).getAnnotations().get(k)));
+                final Map<String, String> inputToOutputHeaderMap =  inputToOutputHeaderMaps.get(i);
+                final List<SimpleAnnotatedGenomicRegion> matchingSegments = unionIntervalsToSegmentsMap.get(interval);
+                inputToOutputHeaderMap.forEach((k,v) -> {
+                                if (matchingSegments.size() > 1) {
+                                    logger.warn(interval + " had more than one segment: " + matchingSegments + " only annotating with the first match.");
+                                }
+                                if (matchingSegments.size() >= 1) {
+                                    intervalAnnotationMap.put(v, matchingSegments.get(0).getAnnotations().getOrDefault(k, ""));
+                                } else {
+                                    intervalAnnotationMap.put(v, "");
+                                }
+                    });
             }
 
             result.add(new SimpleAnnotatedGenomicRegion(new SimpleInterval(interval), intervalAnnotationMap));

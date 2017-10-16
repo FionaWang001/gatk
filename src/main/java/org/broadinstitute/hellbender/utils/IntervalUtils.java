@@ -8,6 +8,7 @@ import htsjdk.samtools.reference.ReferenceSequenceFile;
 import htsjdk.samtools.util.Interval;
 import htsjdk.samtools.util.IntervalList;
 import htsjdk.samtools.util.Locatable;
+import htsjdk.samtools.util.PeekableIterator;
 import htsjdk.tribble.Feature;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.tuple.ImmutablePair;
@@ -1257,8 +1258,8 @@ public final class IntervalUtils {
      *
      * No copies of inputs are created
      *
-     * @param keys -- the intervals we wish to query.  Sorted by interval.  Never {@code null}
-     * @param vals -- the intervals that we wish to map to the keys.  Sorted by interval.  Never {@code null}
+     * @param keys -- the intervals we wish to query.  Sorted by interval.  No intervals overlap.  Never {@code null}
+     * @param vals -- the intervals that we wish to map to the keys.  Sorted by interval.  No intervals overlap.  Never {@code null}
      * @return a mapping of intervals from keys to the list of overlapping intervals in vals.  All item in keys will
      * have a key.  Never {@code null}
      */
@@ -1267,9 +1268,11 @@ public final class IntervalUtils {
         Utils.nonNull(keys);
         Utils.nonNull(vals);
 
-        final Iterator<T> keysIterator = keys.iterator();
-        final Iterator<U> valsIterator = vals.iterator();
+        final PeekableIterator<T> keysIterator = new PeekableIterator<>(keys.iterator());
+        final PeekableIterator<U> valsIterator = new PeekableIterator<>(vals.iterator());
         final Set<T> keysSet = new HashSet<>(keys);
+
+        // Inialize the entire map with key to empty list entries.
         final Map<T, List<U>> result = keysSet.stream().collect(Collectors.toMap(k -> k, k -> new ArrayList<>()));
 
         if (!valsIterator.hasNext() || !keysIterator.hasNext()) {
@@ -1277,40 +1280,29 @@ public final class IntervalUtils {
         }
 
         U v = valsIterator.next();
-        while (keysIterator.hasNext()) {
-            Locatable k = keysIterator.next();
+        Locatable k = keysIterator.next();
 
-            // Advance until we overlap
-            while (!k.overlaps(v)) {
-
-                // if k is before v
-                if (IntervalUtils.isBefore(k, v, dictionary)) {
-                    if (keysIterator.hasNext()) {
-                        k = keysIterator.next();
-                    } else {
-                        break;
-                    }
-
-                } else {
-                    // k is definitely after v
-                    if (valsIterator.hasNext()) {
-                        v = valsIterator.next();
-                    } else {
-                        break;
-                    }
-                }
+        while ((k != null) && (v != null)) {
+            if (k.overlaps(v)) {
+                result.get(k).add(v);
             }
 
-            // Advance until we no longer overlap.
-            while (k.overlaps(v)) {
-                result.get(k).add(v);
+            // Note that this takes advantage of k.overlaps(null) --> false
+            if (k.overlaps(valsIterator.peek())) {
                 if (valsIterator.hasNext()) {
                     v = valsIterator.next();
                 } else {
-                    break;
+                    v = null;
+                }
+            } else {
+                if (keysIterator.hasNext()) {
+                    k = keysIterator.next();
+                } else {
+                    k = null;
                 }
             }
         }
+
         return result;
     }
 }

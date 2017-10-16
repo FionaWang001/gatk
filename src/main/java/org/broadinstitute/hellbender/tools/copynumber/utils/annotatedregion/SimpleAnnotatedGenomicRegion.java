@@ -1,9 +1,12 @@
 package org.broadinstitute.hellbender.tools.copynumber.utils.annotatedregion;
 
 import htsjdk.samtools.util.Locatable;
+import org.apache.commons.lang3.StringUtils;
 import org.broadinstitute.hellbender.utils.SimpleInterval;
+import org.broadinstitute.hellbender.utils.Utils;
 
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Simple class that just has an interval and name value pairs.
@@ -47,5 +50,11 @@ public class SimpleAnnotatedGenomicRegion implements Locatable {
         final SimpleAnnotatedGenomicRegion that = (SimpleAnnotatedGenomicRegion) o;
         return this.interval.equals(that.getInterval()) && this.getAnnotations().equals(that.getAnnotations());
 
+    }
+
+    @Override
+    public String toString() {
+        return interval.toString() + " :: " + StringUtils.join(Utils.stream(annotations.entrySet().iterator())
+                .map(e -> e.getKey() + "->" + e.getValue()).collect(Collectors.toList()), ",");
     }
 }
