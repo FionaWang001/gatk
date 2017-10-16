@@ -174,7 +174,7 @@ public final class BreakpointComplications {
         final boolean isNotSimpleTranslocation = chimericAlignment.isNotSimpleTranslocation();
 
         if (chimericAlignment.strandSwitch!= StrandSwitch.NO_SWITCH) {
-            if (isLikelyInvertedDuplication(chimericAlignment.regionWithLowerCoordOnContig, chimericAlignment.regionWithHigherCoordOnContig))
+            if (ChimericAlignment.isLikelyInvertedDuplication(chimericAlignment.regionWithLowerCoordOnContig, chimericAlignment.regionWithHigherCoordOnContig))
                 initForInvDup(chimericAlignment, contigSeq);
             else
                 initForInversion(chimericAlignment, contigSeq);
@@ -200,7 +200,7 @@ public final class BreakpointComplications {
 
     /**
      * Initialize the fields in this object, assuming the input chimeric alignment is induced by two alignments with
-     * "significant" (see {@link #isLikelyInvertedDuplication(AlignmentInterval, AlignmentInterval)})
+     * "significant" (see {@link ChimericAlignment#isLikelyInvertedDuplication(AlignmentInterval, AlignmentInterval)})
      * overlap on their reference spans.
      */
     private void initForInvDup(final ChimericAlignment chimericAlignment, final byte[] contigSeq) {
@@ -295,17 +295,6 @@ public final class BreakpointComplications {
         final byte[] seq = Arrays.copyOfRange(contigSeq, start, end);
         if (needRC) SequenceUtil.reverseComplement(seq, 0, seq.length);
         return seq;
-    }
-
-    /**
-     * todo : see ticket #3529
-     * @return true iff the two AI of the {@code longRead} overlaps on reference is more than half of the two AI's minimal read span.
-     */
-    @VisibleForTesting
-    public static boolean isLikelyInvertedDuplication(final AlignmentInterval one, final AlignmentInterval two) {
-        return 2 * AlignmentInterval.overlapOnRefSpan(one, two) >
-                Math.min(one.endInAssembledContig - one.startInAssembledContig,
-                         two.endInAssembledContig - two.startInAssembledContig) + 1;
     }
 
     //==================================================================================================================
