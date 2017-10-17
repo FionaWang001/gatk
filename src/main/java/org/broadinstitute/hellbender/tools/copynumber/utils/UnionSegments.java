@@ -71,8 +71,7 @@ public class UnionSegments extends GATKTool {
 
             // Create a map of input to output headers.  I.e. the annotation in the segment1 to the output that should be written in the final file.
             //  This assumes that the keys in each entry of the list is the same.
-            // TODO: If we want to support more than two segment files, this is the only bit that requires thinking.
-            // TODO: Once above TODO is solved, move this logic into a utility class.
+            // TODO: If we want to support more than two segment files, this is the only bit that requires thinking.  Once this is solved, then this logic can go into a utility class.
             final Set<String> intersectingAnnotations = Sets.intersection(segments1.get(0).getAnnotations().keySet(), segments2.get(0).getAnnotations().keySet());
 
             // Create the obvious mappings that are identity then tack on new annotations for conflicts.
