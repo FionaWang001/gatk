@@ -1,6 +1,8 @@
 package org.broadinstitute.hellbender.tools.copynumber.utils.annotatedregion;
 
 import com.google.common.collect.Sets;
+import org.apache.commons.collections4.list.UnmodifiableList;
+import org.broadinstitute.barclay.utils.Utils;
 import org.broadinstitute.hellbender.exceptions.UserException;
 import org.broadinstitute.hellbender.utils.SimpleInterval;
 import org.supercsv.io.CsvMapReader;
@@ -14,10 +16,8 @@ import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
 
-// TODO: Catch exceptions and handle with GATK errors.
-
 /**
- * Generally a good idea to create a new instance for each file being read.
+ * Generally a good idea to create a new instance for each file being read or written.
  */
 public class VersatileAnnotatedRegionParser {
     protected final static Set<String> CONTIG_HEADERS = Sets.newHashSet("Chromosome", "contig", "chr", "CONTIG");
@@ -27,14 +27,19 @@ public class VersatileAnnotatedRegionParser {
     protected final HashCommentMatcher hashCommentMatcher = new HashCommentMatcher();
 
     /**
-     *  TODO: Docs
-     *  TODO: Refactor into a ParsingResult class to return both the annotated region list and the comments?
+     *  Reads entire file in one command and stores in RAM.
+     *
+     *  Comments can be obtained after reading the file with a call to {@link VersatileAnnotatedRegionParser::getComments}
+     *
      * @param tsvRegionFile -- File containing tsv of genomic regions and annotations per line.  E.g. a segment file.
      * @param headersOfInterest -- should not include any headers that are used to define the region (e.g. contig, start, end)
-     * @return
+     * @return annotated regions with one line in the input file for each entry of the list.  Never {@code null}
      * @throws IOException
      */
     public List<SimpleAnnotatedGenomicRegion> readAnnotatedRegions(final File tsvRegionFile, final Set<String> headersOfInterest) throws IOException {
+
+        Utils.nonNull(tsvRegionFile);
+        Utils.nonNull(headersOfInterest);
 
         ICsvMapReader mapReader = null;
         final List<SimpleAnnotatedGenomicRegion> result = new ArrayList<>();
@@ -97,20 +102,19 @@ public class VersatileAnnotatedRegionParser {
         }
     }
 
-    // TODO: Make unmodifiable?
-    public List<String> getComments() {
+    public UnmodifiableList<String> getComments() {
         return hashCommentMatcher.getComments();
     }
 
     /**
-     *  TODO: Docs.
-     *  TODO: Can we make this static.
-     * @param regions
-     * @param outputFile
-     * @param comments
-     * @param contigHeader
-     * @param startHeader
-     * @param endHeader
+     *  Write a tsv file of annotated regions with the specified strings for the position headers.
+     *
+     * @param regions list of locatables and associated annotations for writing.  One per line.
+     * @param outputFile location of the output file.
+     * @param comments list of comments to prepend to the tsv.  Each line will be prepended with "#"
+     * @param contigHeader header name to use for the contig
+     * @param startHeader header name to use for the start position (inclusive)
+     * @param endHeader header name to use for the end position (inclusive)
      */
     public void writeAnnotatedRegionsAsTsv(final List<SimpleAnnotatedGenomicRegion> regions, final File outputFile,
                                            final List<String> comments, final String contigHeader, final String startHeader, final String endHeader) {
@@ -120,12 +124,12 @@ public class VersatileAnnotatedRegionParser {
         headersAsList.addAll(additionalAnnotations);
 
         final List<Map<String, String>> lines = regions.stream()
-                .map(r -> convertSimpleAnnotatedGenomicRegionToStringMap(r, contigHeader, startHeader, endHeader))
+                .map(r -> VersatileAnnotatedRegionParser.convertSimpleAnnotatedGenomicRegionToStringMap(r, contigHeader, startHeader, endHeader))
                 .collect(Collectors.toList());
         BasicTsvWriter.writeLines(headersAsList.toArray(new String[headersAsList.size()]), lines, outputFile, comments, getTsvPreference());
     }
 
-    private Map<String, String> convertSimpleAnnotatedGenomicRegionToStringMap(final SimpleAnnotatedGenomicRegion region, final String contigHeader, final String startHeader, final String endHeader) {
+    private static Map<String, String> convertSimpleAnnotatedGenomicRegionToStringMap(final SimpleAnnotatedGenomicRegion region, final String contigHeader, final String startHeader, final String endHeader) {
         final Map<String, String> result = new HashMap<>(region.getAnnotations());
         result.put(contigHeader, region.getContig());
         result.put(startHeader, String.valueOf(region.getStart()));

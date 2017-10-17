@@ -1,5 +1,6 @@
 package org.broadinstitute.hellbender.tools.copynumber.utils.annotatedregion;
 
+import org.apache.commons.collections4.list.UnmodifiableList;
 import org.supercsv.comment.CommentMatcher;
 
 import java.util.ArrayList;
@@ -25,8 +26,7 @@ public class HashCommentMatcher implements CommentMatcher {
     public HashCommentMatcher() {
     }
 
-    // TODO: Make unmodifiable?
-    public List<String> getComments() {
-        return comments;
+    public UnmodifiableList<String> getComments() {
+        return new UnmodifiableList<>(comments);
     }
 }
