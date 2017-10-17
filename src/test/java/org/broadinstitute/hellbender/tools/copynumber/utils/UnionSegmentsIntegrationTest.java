@@ -1,11 +1,13 @@
 package org.broadinstitute.hellbender.tools.copynumber.utils;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 import org.broadinstitute.hellbender.CommandLineProgramTest;
 import org.broadinstitute.hellbender.cmdline.ExomeStandardArgumentDefinitions;
 import org.broadinstitute.hellbender.cmdline.StandardArgumentDefinitions;
 import org.broadinstitute.hellbender.tools.copynumber.utils.annotatedregion.SimpleAnnotatedGenomicRegion;
 import org.broadinstitute.hellbender.tools.copynumber.utils.annotatedregion.VersatileAnnotatedRegionParser;
+import org.broadinstitute.hellbender.utils.SimpleInterval;
 import org.broadinstitute.hellbender.utils.Utils;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -105,7 +107,33 @@ public class UnionSegmentsIntegrationTest extends CommandLineProgramTest {
         final List<SimpleAnnotatedGenomicRegion> regions = parser.readAnnotatedRegions(outputFile, Sets.newHashSet("Segment_Mean_1", "Segment_Call_1", "Segment_Mean_2", "Segment_Call_2"));
         Assert.assertEquals(regions.size(), 13);
         Assert.assertTrue(regions.stream().allMatch(r -> r.getAnnotations().size() == 4));
+
+        // Painstakingly made by hand
+        Assert.assertEquals(regions.get(0), new SimpleAnnotatedGenomicRegion(new SimpleInterval("1", 5000, 10000),
+                ImmutableMap.of("Segment_Call_1", "", "Segment_Call_2", "0",	"Segment_Mean_1", "", "Segment_Mean_2", "-0.04")));
+        Assert.assertEquals(regions.get(1), new SimpleAnnotatedGenomicRegion(new SimpleInterval("1", 10001, 10500),
+                ImmutableMap.of("Segment_Call_1", "0", "Segment_Call_2", "0",	"Segment_Mean_1", "-0.03", "Segment_Mean_2", "-0.04")));
+        Assert.assertEquals(regions.get(2), new SimpleAnnotatedGenomicRegion(new SimpleInterval("1", 10501, 52499),
+                ImmutableMap.of("Segment_Call_1", "", "Segment_Call_2", "0",	"Segment_Mean_1", "", "Segment_Mean_2", "-0.04")));
+        Assert.assertEquals(regions.get(3), new SimpleAnnotatedGenomicRegion(new SimpleInterval("1", 52500, 60000),
+                ImmutableMap.of("Segment_Call_1", "-", "Segment_Call_2", "0",	"Segment_Mean_1", "-0.76", "Segment_Mean_2", "-0.04")));
+        Assert.assertEquals(regions.get(4), new SimpleAnnotatedGenomicRegion(new SimpleInterval("1", 60001, 69999),
+                ImmutableMap.of("Segment_Call_1", "-", "Segment_Call_2", "",	"Segment_Mean_1", "-0.76", "Segment_Mean_2", "")));
+        Assert.assertEquals(regions.get(5), new SimpleAnnotatedGenomicRegion(new SimpleInterval("1", 70000, 100000),
+                ImmutableMap.of("Segment_Call_1", "-", "Segment_Call_2", "-",	"Segment_Mean_1", "-0.76", "Segment_Mean_2", "-0.8")));
+        Assert.assertEquals(regions.get(6), new SimpleAnnotatedGenomicRegion(new SimpleInterval("1", 100001, 109750),
+                ImmutableMap.of("Segment_Call_1", "-", "Segment_Call_2", "",	"Segment_Mean_1", "-0.76", "Segment_Mean_2", "")));
+        Assert.assertEquals(regions.get(7), new SimpleAnnotatedGenomicRegion(new SimpleInterval("1", 109751, 119999),
+                ImmutableMap.of("Segment_Call_1", "0", "Segment_Call_2", "",	"Segment_Mean_1", "-0.10", "Segment_Mean_2", "")));
+        Assert.assertEquals(regions.get(8), new SimpleAnnotatedGenomicRegion(new SimpleInterval("1", 120000, 220000),
+                ImmutableMap.of("Segment_Call_1", "0", "Segment_Call_2", "0",	"Segment_Mean_1", "-0.10", "Segment_Mean_2", "-0.1")));
+        Assert.assertEquals(regions.get(9), new SimpleAnnotatedGenomicRegion(new SimpleInterval("1", 220001, 229999),
+                ImmutableMap.of("Segment_Call_1", "0", "Segment_Call_2", "",	"Segment_Mean_1", "-0.10", "Segment_Mean_2", "")));
+        Assert.assertEquals(regions.get(10), new SimpleAnnotatedGenomicRegion(new SimpleInterval("1", 230000, 230500),
+                ImmutableMap.of("Segment_Call_1", "0", "Segment_Call_2", "-",	"Segment_Mean_1", "-0.10", "Segment_Mean_2", "-0.8")));
+        Assert.assertEquals(regions.get(11), new SimpleAnnotatedGenomicRegion(new SimpleInterval("1", 230501, 258500),
+                ImmutableMap.of("Segment_Call_1", "-", "Segment_Call_2", "-",	"Segment_Mean_1", "-0.60", "Segment_Mean_2", "-0.8")));
+        Assert.assertEquals(regions.get(12), new SimpleAnnotatedGenomicRegion(new SimpleInterval("1", 258501, 300000),
+                ImmutableMap.of("Segment_Call_1", "", "Segment_Call_2", "-",	"Segment_Mean_1", "", "Segment_Mean_2", "-0.8")));
     }
-        // TODO: Add test that is a bit more sophisticated and like the real world
-    // TODO: Add warnings when columns of interest are not in a file.
 }
